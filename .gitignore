@@ -1,0 +1,9 @@
+# environment variables
+.env
+
+# npm
+/node_modules
+package-lock.json
+
+# mongo
+/db
