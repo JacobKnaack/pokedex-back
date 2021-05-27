@@ -9,6 +9,16 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const getKey = require('./lib/auth/getKey.js');
 
+function verifyToken(token, callback) {
+  jwt.verify(token, getKey, {}, (err, user) => {
+    if (err) {
+      console.error('Something went wrong');
+      return callback(err);
+    }
+    callback(user);
+  })
+}
+
 // Use these to perform CRUD for a given Data Model
 const ProfileModel = require('./lib/models/profile.js').model;
 const PokemonModel = require('./lib/models/pokemon.js').model;
@@ -27,24 +37,67 @@ app.use(express.json());
 
 app.get('/profile', (request, response) => {
   //TODO: allow the user to retrieve their profile information
+  const token = request.headers.authorization.split(' ')[1];
+  verifyToken(token, findPokemon);
 
-  // Check for the presence of a token on the request.
-  // validate the token using jwt and the getKey function
-  // Search for a Profile in the DB using user information from the token
-  //    create a new Profile is none is found.
-  //  send the Profile back to the user in the response.
-
+  async function findPokemon(user) {
+    const username = user.name;
+    await ProfileModel.find({ username }, (err, person) => {
+      if (err) console.log(err);
+      if (!person.length) {
+        person[0] = { username, pokedex: [] };
+        const newPokedex = new ProfileModel(person[0]);
+        newPokedex.save();
+      }
+      response.send(person[0]);
+    });
+  }
 });
 
 app.post('/pokedex', (request, response) => {
-  // TODO: Add a new pokemon to a User Profile's pokedex.
+  const token = request.headers.authorization.split(' ')[1];
+  const newPokemon = new PokemonModel(request.body);
+  verifyToken(token, addPokemon);
 
-  // check for the presence of a token on the request
-  // validate the token using jwt and the getKey function
-  // find the User profile associated with the token
-  //    respond with a 401 if no user is found.
-  // create a new Pokemon and add it to the Profile's pokedex
-  // respond with the updated Pokedex object.
+  async function addPokemon(user) {
+    console.log(user);
+    const username = user.name;
+    await ProfileModel.find({ username }, (err, profile) => {
+      if (err) console.log(err);
+      if (profile.length) {
+        profile[0].pokedex.push(newPokemon);
+        newPokemon.save();
+        profile[0].save();
+        response.send(profile[0].pokedex);
+      } else {
+        response.status(401).send('no profile found');
+      }
+    });
+  }
+});
+
+app.put('/pokedex/:id', (request, response) => {
+  const token = request.headers.authorization.split(' ')[1];
+  const newPokemon = request.body;
+  const pokemonId = parseInt(request.params.id);
+  verifyToken(token, updatePokemon);
+
+  async function updatePokemon(user) {
+    const username = user.name;
+    await ProfileModel.find({ username }, (err, profile) => {
+      if (err) console.log(err);
+      if (!profile.length) {
+        response.status(401).send('No Profile found for ', username);
+      } else {
+        profile[0].pokedex = profile.pokedex.map((pokemon, i) => {
+          if (i === pokemonId) return newPokemon;
+          return pokemon;
+        });
+        profile[0].save();
+        response.send(profile[0].pokedex);
+      }
+    })
+  }
 });
 
 app.delete('/pokedex/:id', (request, response) => {
