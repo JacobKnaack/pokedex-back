@@ -9,6 +9,10 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const getKey = require('./lib/auth/getKey.js');
 
+// Use these to perform CRUD for a given Data Model
+const ProfileModel = require('./lib/models/profile.js').model;
+const PokemonModel = require('./lib/models/pokemon.js').model;
+
 const PORT = process.env.PORT || 3001;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pokedex';
 
@@ -38,9 +42,20 @@ app.post('/pokedex', (request, response) => {
   // check for the presence of a token on the request
   // validate the token using jwt and the getKey function
   // find the User profile associated with the token
-  //     respond with a 401 is no user is found.
+  //    respond with a 401 if no user is found.
   // create a new Pokemon and add it to the Profile's pokedex
   // respond with the updated Pokedex object.
+});
+
+app.delete('/pokedex/:id', (request, response) => {
+  // TODO: Remove a Pokemon from the Users Profile Pokedex.
+
+  // Check for the presence of a token onthe request.
+  // validate the token
+  // find A profile associated with the Token
+  //    respond with a 401 if no user is found
+  // remove the pokemon from the Profile
+  // response with the updated Pokedec object.
 });
 
 const db = mongoose.connection;
